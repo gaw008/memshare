@@ -1,0 +1,15 @@
+[Unit]
+Description=memhub MCP memory service
+After=network.target
+
+[Service]
+Type=simple
+User=memhub
+Group=memhub
+WorkingDirectory=/srv/memhub/app
+ExecStart=/srv/memhub/app/.venv/bin/memhub --config /srv/memhub/app/memhub.prod.toml serve
+Restart=always
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

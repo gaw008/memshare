@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly memhub memory backup
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=memhub-backup.service
+
+[Install]
+WantedBy=timers.target

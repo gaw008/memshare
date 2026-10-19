@@ -1,0 +1,47 @@
+memory_dir = "/srv/memhub/memory"
+index_path = "/srv/memhub/state/index.sqlite"
+host = "127.0.0.1"
+port = 8796
+timezone = "America/Los_Angeles"
+max_file_bytes = 16384
+search_default_limit = 8
+read_max_paths = 10
+context_token_budget = 2000
+duplicate_threshold = 0.85
+git_author_name = "memhub"
+git_author_email = "memhub@localhost"
+env_path = "/srv/memhub/state/.env"
+clients_path = "/srv/memhub/app/clients.yaml"
+oauth_db_path = "/srv/memhub/state/oauth.sqlite"
+access_log_path = "/srv/memhub/state/access.jsonl"
+public_url = "https://mem.example.com"
+oauth_apps = ["claude", "chatgpt", "gemini", "grok", "grok-bot", "codex"]
+oauth_scopes = ["memory", "offline_access"]
+authorization_code_ttl_seconds = 300
+access_token_ttl_seconds = 3600
+refresh_token_ttl_seconds = 2592000
+rate_limit_per_minute = 60
+allowed_hosts = ["127.0.0.1:*", "localhost:*", "mem.example.com"]
+allowed_origins = ["http://127.0.0.1:*", "http://localhost:*", "https://mem.example.com"]
+sensitive_patterns = [
+  '(?<!\d)(?:\d{17}[\dXx]|\d{15})(?!\d)',
+  '(?i)(?<![a-z0-9])(?:[eg]\d{8}|[a-z]{2}\d{7})(?![a-z0-9])',
+  '(?<!\d)(?:\d[ -]?){15,19}(?!\d)',
+  '(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)',
+  '(?i)(?:密码|口令|password|passwd|pwd)\s*(?:是|为|[:：=])\s*\S+',
+  '(?i)(?:sk-[a-z0-9_-]{8,}|ghp_[a-z0-9]{8,}|AKIA[A-Z0-9]{16}|xox[a-z]-[a-z0-9-]+)',
+  '(?i)(?:账号|账户号|account\s*(?:number|no\.?))\s*(?:是|为|[:：=])\s*[a-z0-9-]+',
+]
+
+[deployment]
+operator_user = "ubuntu"
+service_user = "memhub"
+home_dir = "/srv/memhub"
+app_dir = "/srv/memhub/app"
+state_dir = "/srv/memhub/state"
+code_remote = "git@github-memhub:YOUR_GITHUB_USER/memhub.git"
+memory_remote = "git@github-memhub-memory:YOUR_GITHUB_USER/memhub-memory.git"
+python_command = "python3.12"
+health_timeout_seconds = 30
+tunnel_name = "memhub"
+tunnel_metrics = "127.0.0.1:20245"

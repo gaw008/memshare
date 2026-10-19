@@ -1,0 +1,12 @@
+[Unit]
+Description=Push memhub Markdown memory repository to GitHub
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=memhub
+Group=memhub
+WorkingDirectory=/srv/memhub/memory
+ExecStart=/usr/bin/git -C /srv/memhub/memory push origin main
+UMask=0077

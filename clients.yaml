@@ -1,0 +1,24 @@
+claude-code:
+  read: ['**']
+  write: ['**']
+claude:
+  read: ['**']
+  write: ['**']
+gemini:
+  read: ['**']
+  write: ['**']
+gemini-cli:
+  read: ['**']
+  write: ['**']
+chatgpt:
+  read: ['**']
+  write: ['**']
+grok:
+  read: ['**']
+  write: ['**']
+grok-bot:
+  read: ['**']
+  write: ['**']
+codex:
+  read: ['**']
+  write: ['**']

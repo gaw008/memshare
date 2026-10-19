@@ -1,0 +1,26 @@
+# Test-only permission policy. It keeps one restricted identity (grok) so permission
+# checks stay covered regardless of the production policy in the root clients.yaml.
+claude-code:
+  read: ['**']
+  write: ['**']
+claude:
+  read: ['**']
+  write: ['**']
+gemini:
+  read: ['**']
+  write: ['**']
+gemini-cli:
+  read: ['**']
+  write: ['**']
+chatgpt:
+  read: ['**']
+  write: ['**']
+grok-bot:
+  read: ['**']
+  write: ['**']
+codex:
+  read: ['**']
+  write: ['**']
+grok:
+  read: ['profile.md', 'preferences.md', 'topics/social-media.md']
+  write: []
