@@ -280,8 +280,8 @@ def test_get_context_returns_complete_documents_catalog_and_budget(store, config
     assert result["profile"] == "- 我是工程师"
     assert result["preferences"] == ""
     assert result["files"] == {
-        "profile.md": "身份与长期目标", "preferences.md": "回答方式与长期偏好",
-        "_inbox.md": "尚未归类的长期事实", "topics/fitness.md": "训练计划",
+        "profile.md": "Identity and long-term goals", "preferences.md": "Answer style and long-term preferences",
+        "_inbox.md": "Long-term facts not yet filed", "topics/fitness.md": "训练计划",
     }
     assert isinstance(result["estimated_tokens"], int)
     assert result["token_budget"] == config.context_token_budget
@@ -334,7 +334,7 @@ def test_log_appends_each_identity_to_one_daily_journal(store, config):
 
 
 def test_journal_stays_out_of_catalog_and_search(store):
-    store.log("问：增肌期间怎么安排羽毛球", "claude-code")
+    store.log("问：增肌期间怎么安排跑步", "claude-code")
     assert not any(path.startswith("journal/") for path in store.get_context()["files"])
     assert not store.search("增肌")["hits"]
 

@@ -83,16 +83,16 @@ class OAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, RefreshT
             pending = self._pending(ticket) if ticket else None
             if ticket and not pending:
                 return JSONResponse({'error': 'Invalid or expired login request'}, status_code=400)
-            redirect_host = escape(urlsplit(str(AuthorizationParams.model_validate_json(pending['params']).redirect_uri)).netloc) if pending else '请从 app 发起授权'
+            redirect_host = escape(urlsplit(str(AuthorizationParams.model_validate_json(pending['params']).redirect_uri)).netloc) if pending else 'start authorization from your app'
             options = ''.join(f'<option value="{escape(app)}">{escape(app)}</option>' for app in self.config.oauth_apps)
-            response = HTMLResponse(f'''<!doctype html><html lang="zh-CN"><meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1"><title>memhub 授权</title>
-                <body><main><h1>授权个人记忆库</h1><p>授权后返回：{redirect_host}</p><p>选择此连接使用的 app 身份和权限。</p>
+            response = HTMLResponse(f'''<!doctype html><html lang="en"><meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1"><title>memhub authorization</title>
+                <body><main><h1>Authorize your personal memory</h1><p>After authorizing you return to: {redirect_host}</p><p>Choose the app identity, and with it the permissions, this connection will use.</p>
                 <form method="post" action="{escape(self.config.public_url)}/oauth/login">
                 <input type="hidden" name="ticket" value="{escape(ticket)}">
-                <label>口令 <input name="password" type="password" required autocomplete="current-password"></label>
-                <label>这是哪个 app <select name="identity">{options}</select></label>
-                <button type="submit">授权</button></form></main></body></html>''',
+                <label>Password <input name="password" type="password" required autocomplete="current-password"></label>
+                <label>Which app is this <select name="identity">{options}</select></label>
+                <button type="submit">Authorize</button></form></main></body></html>''',
                 headers={'Cache-Control': 'no-store'})
             if ticket:
                 response.set_cookie('memhub_login', ticket, httponly=True, samesite='lax',

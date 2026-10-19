@@ -102,8 +102,8 @@ Then start a new session and say "call memhub's get_context first".
 
 Chat apps such as ChatGPT, Claude (web and mobile), Gemini and Grok can only reach a public HTTPS URL.
 
-1. **Deploy.** See [docs/DEPLOY.md](docs/DEPLOY.md) (Chinese). The reference setup is one Ubuntu server with systemd and a Cloudflare Tunnel (no open inbound ports), with install and update scripts and an hourly backup timer. First replace `mem.example.com` and `YOUR_GITHUB_USER` in `memhub.prod.toml` with your own values.
-2. **Connect each app.** See [docs/CLIENTS.md](docs/CLIENTS.md) (Chinese) for Claude, ChatGPT, Gemini, Grok, Claude Code and Gemini CLI. During OAuth, chat apps land on memhub's login page: enter your password and pick "which app is this" — that choice fixes the connection's identity and permissions.
+1. **Deploy.** See [docs/DEPLOY.md](docs/DEPLOY.md). The reference setup is one Ubuntu server with systemd and a Cloudflare Tunnel (no open inbound ports), with install and update scripts and an hourly backup timer. First replace `mem.example.com` and `YOUR_GITHUB_USER` in `memhub.prod.toml` with your own values.
+2. **Connect each app.** See [docs/CLIENTS.md](docs/CLIENTS.md) for Claude, ChatGPT, Gemini, Grok, Claude Code and Gemini CLI. During OAuth, chat apps land on memhub's login page: enter your password and pick "which app is this" — that choice fixes the connection's identity and permissions.
 3. **Add custom instructions to each assistant** (see the template below). Not every vendor honors MCP initialize instructions, so custom instructions are the reliable path.
 
 ```text
@@ -145,7 +145,7 @@ Each non-empty line of the import file is one fact, and goes through the same pe
 - An identity is the app label the user picks and binds at login. It does not authenticate that the vendor's client is genuine.
 - Single-process write lock plus atomic file replacement; there is no transaction handling for multiple processes or concurrent external edits. After editing Markdown by hand, restart the service to rebuild the index.
 - The OAuth database and `.env` are credential state and are not part of the Markdown backup; back up your server state yourself.
-- Vendor support as of 2026-10: Claude and ChatGPT let you choose DCR; Gemini's consumer app officially supports DCR but has region, language and account-type restrictions; Grok has not published full OAuth registration details, so verify compatibility yourself. See [docs/AUTH-RESEARCH.md](docs/AUTH-RESEARCH.md) (Chinese).
+- Vendor support as of 2026-10: Claude and ChatGPT let you choose DCR; Gemini's consumer app officially supports DCR but has region, language and account-type restrictions; Grok has not published full OAuth registration details, so verify compatibility yourself. See [docs/AUTH-RESEARCH.md](docs/AUTH-RESEARCH.md).
 
 ## Development
 

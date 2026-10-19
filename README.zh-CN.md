@@ -102,9 +102,19 @@ claude mcp add --transport http --scope user memhub \
 
 ChatGPT、Claude 网页/手机、Gemini、Grok 这类聊天 app 只能连接公网 HTTPS 地址。
 
-1. **部署**：参考 [docs/DEPLOY.md](docs/DEPLOY.md)。参考方案是一台 Ubuntu 服务器 + systemd + Cloudflare Tunnel（不用开公网端口），附带安装、更新脚本和每小时备份 timer。先把 `memhub.prod.toml` 里的 `mem.example.com`、`YOUR_GITHUB_USER` 换成你自己的。
-2. **接入各家 app**：参考 [docs/CLIENTS.md](docs/CLIENTS.md)，包含 Claude、ChatGPT、Gemini、Grok、Claude Code、Gemini CLI 的步骤。聊天 app 授权时会跳到 memhub 的登录页，输入口令并选择"这是哪个 app"，这个选择决定该连接的身份和权限。
-3. **给每家 AI 加一段自定义指令**（模板见 [docs/CLIENTS.md](docs/CLIENTS.md#每家自定义指令模板)）。MCP 的 initialize instructions 不是每家都会遵守，写进自定义指令最可靠。
+1. **部署**：参考 [docs/DEPLOY.md](docs/DEPLOY.md)（英文）。参考方案是一台 Ubuntu 服务器 + systemd + Cloudflare Tunnel（不用开公网端口），附带安装、更新脚本和每小时备份 timer。先把 `memhub.prod.toml` 里的 `mem.example.com`、`YOUR_GITHUB_USER` 换成你自己的。
+2. **接入各家 app**：参考 [docs/CLIENTS.md](docs/CLIENTS.md)（英文），包含 Claude、ChatGPT、Gemini、Grok、Claude Code、Gemini CLI 的步骤。聊天 app 授权时会跳到 memhub 的登录页，输入口令并选择"这是哪个 app"，这个选择决定该连接的身份和权限。
+3. **给每家 AI 加一段自定义指令**（模板如下）。MCP 的 initialize instructions 不是每家都会遵守，写进自定义指令最可靠。
+
+```text
+我接入了个人记忆库 memhub（MCP 工具）。规则：
+1. 每次新对话先调用 get_context，再回答。
+2. 问题涉及我的个人情况（健康、项目、家人、偏好）时，先 search 再答。
+3. 我说出长期有效的新事实（目标、习惯、决定、项目进展、关于某人的情况）时，调用 remember 记下；旧事实变了用 update。
+4. 不记：一次性闲聊、你的推测、你给我的建议（除非我明确采纳）。
+5. 写 profile 前先问我。
+6. 每个话题结束时调用 log，用一行记下我问了什么、卡在哪里或做了什么决定。
+```
 
 > 给 memhub 新增工具后，部分聊天 app 会缓存旧的工具列表，需要在它的连接器设置里刷新或重新连接，并开一个新对话。
 
@@ -135,7 +145,7 @@ uv run memhub --config memhub.toml import --source gemini \
 - 身份是用户登录时选择并绑定的 app 标签，不是对厂商客户端真实性的认证。
 - 单进程写锁 + 原子替换文件；不处理多进程或外部同时编辑的事务冲突。手工改了 Markdown 后重启服务即可重建索引。
 - OAuth 数据库和 `.env` 是凭据状态，不在 Markdown 备份里，需要自己备份服务器状态。
-- 各家接入现状（截至 2026-10）：Claude、ChatGPT 支持选择 DCR；Gemini 个人版官方确认 DCR，但有地区、语言、账号类型限制；Grok 官方未公开完整的 OAuth 注册细节，兼容性需自行验证。详见 [docs/AUTH-RESEARCH.md](docs/AUTH-RESEARCH.md)。
+- 各家接入现状（截至 2026-10）：Claude、ChatGPT 支持选择 DCR；Gemini 个人版官方确认 DCR，但有地区、语言、账号类型限制；Grok 官方未公开完整的 OAuth 注册细节，兼容性需自行验证。详见 [docs/AUTH-RESEARCH.md](docs/AUTH-RESEARCH.md)（英文）。
 
 ## 开发
 

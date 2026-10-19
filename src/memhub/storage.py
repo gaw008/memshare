@@ -61,9 +61,9 @@ def initialize_memory(config: Config) -> None:
         raise ValueError("memory_dir already exists; initialization refused")
     config.memory_dir.mkdir(parents=True, exist_ok=True)
     skeletons = {
-        "profile.md": "身份与长期目标",
-        "preferences.md": "回答方式与长期偏好",
-        "_inbox.md": "尚未归类的长期事实",
+        "profile.md": "Identity and long-term goals",
+        "preferences.md": "Answer style and long-term preferences",
+        "_inbox.md": "Long-term facts not yet filed",
     }
     for path, description in skeletons.items():
         content = _render(
@@ -333,7 +333,7 @@ class MemoryStore:
             if self._path(path).exists():
                 _, metadata, body, _ = self._document(path)
             else:
-                metadata = {"name": day, "description": f"{day} 各 Agent 的对话记录", "aliases": [], "updated": day}
+                metadata = {"name": day, "description": f"{day} conversation journal from all assistants", "aliases": [], "updated": day}
                 body = []
             body.append(f"- {entry} [{identity} · {now:%H:%M}]")
             return {"status": "written", "path": path, "version": self._write(path, metadata, body, identity, "log")}

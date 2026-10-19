@@ -56,7 +56,7 @@ def create_app(config: Config) -> Starlette:
                             required_scopes=resource_scopes, client_registration_options=registration,
                             revocation_options=revocation, validate_token_resource=True)
     store = MemoryStore(config)
-    mcp = MCPServer("memhub", instructions="每次新对话先调用 get_context", auth=settings, token_verifier=verifier)
+    mcp = MCPServer("memhub", instructions="Call get_context at the start of every new conversation.", auth=settings, token_verifier=verifier)
 
     def identity() -> str:
         token = get_access_token()
@@ -87,7 +87,7 @@ def create_app(config: Config) -> Starlette:
             result = store.get_context(identity=identity())
             paths = list(result["files"])
             # Clients reliably read tool results, unlike initialize instructions.
-            return {**result, "instructions": "每个话题结束时调用 log，用一行记下用户问了什么、卡在哪里或做了什么决定；不记你的回答和闲聊。"}
+            return {**result, "instructions": "When a topic wraps up, call log with one line: what the user asked and where they got stuck or what they decided. Do not log your own answers or small talk."}
         finally:
             audit("get_context", paths)
 
@@ -118,7 +118,7 @@ def create_app(config: Config) -> Starlette:
     def remember(path: str, fact: str, description: str | None = None, confirm: bool = False) -> dict:
         """Call only to store enduring facts explicitly stated by the user.
         Do NOT store AI guesses, recommendations, or one-off chat. When facts change,
-        use update to replace the original; optionally retain '(之前：...)' for history.
+        use update to replace the original; optionally retain '(previously: ...)' for history.
         Ask the user BEFORE writing profile.md and pass confirm=true after consent.
         New files require a description. Do NOT supply a source/date suffix: the server
         appends authenticated identity and date. Duplicate candidates require update.
@@ -129,7 +129,7 @@ def create_app(config: Config) -> Starlette:
     @storage_errors
     def update(path: str, old_text: str, new_text: str, version: str) -> dict:
         """Call when a user explicitly changes an enduring fact, after read supplies version.
-        Replace the old fact; optionally keep '(之前：...)'. Do NOT append changed facts
+        Replace the old fact; optionally keep '(previously: ...)'. Do NOT append changed facts
         with remember, store guesses, AI advice or one-off chat, or add a source suffix.
         Ask the user BEFORE changing profile.md. On version conflict, read the returned
         latest content and resolve the change before calling again.

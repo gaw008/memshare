@@ -48,7 +48,7 @@ async def authorize(client, config, identity='claude', password='test-oauth-pass
     ticket = parse_qs(location.query)['ticket'][0]
     page = await client.get(location.path + '?' + location.query)
     assert page.status_code == 200
-    assert '这是哪个 app' in page.text
+    assert 'Which app is this' in page.text
     assert all(app in page.text for app in config.oauth_apps)
     response = await client.post('/oauth/login', data={'ticket': ticket, 'identity': identity, 'password': password})
     return registration, response, ticket
