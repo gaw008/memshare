@@ -1,79 +1,81 @@
 # memshare
 
-**让你所有的 AI 共用同一份关于你的记忆。**
+**English** | [简体中文](README.zh-CN.md)
 
-> 仓库叫 memshare，服务、命令行和 MCP 连接名叫 `memhub`。
+**One shared memory about you, for all of your AI assistants.**
 
-如果你像很多人一样，按专长分工使用 AI——Claude Code 写代码、Gemini 做日常问答、ChatGPT 查资料、Grok 写文案——你会发现它们彼此不认识：在 A 那里说过的目标、习惯、项目进展，B 一无所知，每次都要重讲一遍。
+> The repository is called memshare; the server, CLI and MCP connection are named `memhub`.
 
-memhub 是一个自托管的远程 MCP 服务，把"关于你的长期事实"存成一份 Markdown，任何支持 MCP 的 AI 都能读写。它像一个所有助理共用的**档案柜**：谁记了什么、什么时候记的，每一行都写得清清楚楚。
+If you split your work across AI assistants — Claude Code for coding, Gemini for everyday questions, ChatGPT for research, Grok for social posts — you have probably noticed they don't know each other. The goals, habits and project updates you told one of them are unknown to the next, so you keep repeating yourself.
+
+memhub is a self-hosted remote MCP server that keeps the long-lived facts about you in plain Markdown, readable and writable by any MCP-capable assistant. Think of it as a **filing cabinet shared by all your assistants**: every line records who wrote it and when.
 
 ```
-Claude / ChatGPT / Gemini / Grok（OAuth）  Claude Code / Gemini CLI / Codex（静态 token）
+Claude / ChatGPT / Gemini / Grok (OAuth)   Claude Code / Gemini CLI / Codex (static token)
                     \                                   /
-                     └──── HTTPS /mcp（Streamable HTTP）─┘
+                     └──── HTTPS /mcp (Streamable HTTP) ─┘
                                      │
-                              memhub（本项目）
-                     鉴权 → 按身份查权限 → 7 个 MCP 工具
+                              memhub (this repo)
+                  auth → per-identity permissions → 7 MCP tools
                                      │
-               Markdown 文件（唯一事实来源，每次写入一个 git commit）
-               SQLite FTS5 索引（可随时从文件重建，支持中文分词）
+            Markdown files (single source of truth, one git commit per write)
+            SQLite FTS5 index (rebuildable from files, Chinese word segmentation)
 ```
 
-## 特点
+## Features
 
-- **Markdown 是唯一事实来源**：一行一个事实，人能直接读、直接改；每次写入自动 `git commit`，可定时推到你自己的私有 GitHub 仓库备份。
-- **来源可追溯**：每行末尾的 `[gemini · 2026-10-13]` 由服务端按鉴权身份追加，模型无法伪造。
-- **为模型设计的少量工具**：工具越少，各家模型越能用对。工具描述就是给模型的提示词，写清"什么时候调用、什么时候不调用"。
-- **服务端兜底的规则**：写入前查重（相近就返回候选，让模型改用 update）；写 `profile.md` 需要显式确认；单文件 16 KB 上限；用正则拦截证件号、银行卡号、密码、API key。
-- **按身份授权**：聊天 app 用 OAuth 2.1（DCR + PKCE），CLI 用静态 bearer token；每个身份能读写哪些路径，在 `clients.yaml` 里用 glob 配置。
-- **每日对话日志**：各个 AI 把每个话题的提问和卡点追加到同一份当天日志，方便第二天让 AI 帮你复盘。
-- **运行时不依赖外部服务**：不调用任何 LLM API，不用 CDN、远程字体或在线下载。
+- **Markdown is the single source of truth.** One fact per line, easy for humans to read and edit. Every write is a `git commit`, and an hourly timer can push the memory to your own private GitHub repo as a backup.
+- **Traceable sources.** The `[gemini · 2026-10-13]` suffix on each line is appended by the server from the authenticated identity; models cannot forge it.
+- **A small tool set designed for models.** Fewer tools means every vendor's model uses them correctly. Tool descriptions are the prompt: they say when to call and when not to.
+- **Rules enforced server-side.** Duplicate check before writing (near matches come back as candidates so the model uses `update` instead); explicit confirmation to write `profile.md`; 16 KB per-file limit; regex blocking of ID numbers, card numbers, passwords and API keys.
+- **Per-identity authorization.** Chat apps use OAuth 2.1 (DCR + PKCE); CLIs use static bearer tokens. Which paths each identity may read or write is set with globs in `clients.yaml`.
+- **Daily conversation journal.** Assistants append each finished topic — what you asked, where you got stuck — to one shared file per day, so you can ask an AI to review it with you the next morning.
+- **No external services at runtime.** No LLM API calls, no CDN, no remote fonts, no downloads.
 
-## 七个工具
+## The seven tools
 
-| 工具 | 作用 |
+| Tool | Purpose |
 | --- | --- |
-| `get_context` | 新对话第一步调用。返回 profile、preferences 的事实行和"路径 → 描述"的文件目录，控制在约 2K tokens |
-| `search` | 全文检索事实（同时匹配文件描述和别名），中文按词切分 |
-| `read` | 读文件全文和 `version`（每次最多 10 个文件），改写前先读 |
-| `remember` | 追加一条用户明确说过的长期事实；相近内容返回候选而不写入 |
-| `update` | 用 `version` 做乐观并发，替换恰好一处的旧事实 |
-| `forget` | 删除一行事实（不能删整个文件） |
-| `log` | 把一个话题的"问了什么、卡在哪、做了什么决定"追加到 `journal/YYYY-MM-DD.md`；只追加不可改，不进目录和搜索 |
+| `get_context` | Call first in every new conversation. Returns profile and preferences facts plus a `path → description` file catalog, kept around 2K tokens |
+| `search` | Full-text search over facts (also matches file descriptions and aliases), with Chinese word segmentation |
+| `read` | Full file content plus a `version` (up to 10 files per call); read before changing a fact |
+| `remember` | Append a long-lived fact the user explicitly stated; near duplicates return candidates instead of writing |
+| `update` | Replace exactly one existing fact, with optimistic concurrency via `version` |
+| `forget` | Delete one fact line (never a whole file) |
+| `log` | Append "what was asked, where it got stuck, what was decided" for a finished topic to `journal/YYYY-MM-DD.md`; append-only, kept out of the catalog and search |
 
-## 记忆长什么样
+## What the memory looks like
 
 ```
 memory/
-├── profile.md             身份与长期目标（写入需确认）
-├── preferences.md         回答方式与长期偏好
-├── _inbox.md              还没归类的事实
-├── topics/fitness.md      主题：健身、投资、技术……
-├── areas/project-x.md     项目
-├── people/friend.md       关于别人的事实（主语写明是谁）
-└── journal/2026-10-17.md  每日对话日志（只追加）
+├── profile.md             identity and long-term goals (writes need confirmation)
+├── preferences.md         how you like answers, long-term preferences
+├── _inbox.md              facts not yet filed
+├── topics/fitness.md      topics: fitness, investing, tech…
+├── areas/project-x.md     projects
+├── people/friend.md       facts about other people (the subject is always named)
+└── journal/2026-10-17.md  daily conversation journal (append-only)
 ```
 
 ```markdown
 ---
 name: fitness
-description: 训练、体重、饮食习惯
-aliases: [健身, workout]
+description: Training, weight and diet habits
+aliases: [workout, gym]
 updated: '2026-10-13'
 ---
-- 每周跑步三次 [claude-code · 2026-10-13]
-- 正在做增肌训练，目标体重 70kg [gemini · 2026-10-14]
+- Runs three times a week [claude-code · 2026-10-13]
+- Currently on a muscle-gain program, target weight 70 kg [gemini · 2026-10-14]
 ```
 
-## 本地快速开始
+## Quick start (local)
 
-需要 Python 3.12、[uv](https://docs.astral.sh/uv/)、Git。所有命令都要显式指定参数文件；相对路径以参数文件所在目录为基准，缺项直接报错，没有隐式默认值。
+Requires Python 3.12, [uv](https://docs.astral.sh/uv/) and Git. Every command takes an explicit config file; relative paths resolve against that file's directory, and missing keys are errors — there are no implicit defaults.
 
 ```bash
 git clone https://github.com/gaw008/memshare.git && cd memshare
 uv sync --locked
-# 生成两个 CLI 身份的随机 token（仅当还没有 .env 时）：
+# Generate random tokens for the two CLI identities (only if .env does not exist yet):
 uv run python - <<'PY'
 import json, secrets
 from pathlib import Path
@@ -82,68 +84,78 @@ with p.open('x', encoding='utf-8') as f:
     f.write("STATIC_TOKENS='" + json.dumps({secrets.token_urlsafe(48): app for app in ('claude-code', 'gemini-cli')}) + "'\n")
 p.chmod(0o600)
 PY
-uv run memhub --config memhub.toml init           # 初始化独立的记忆 git 仓库（./dev-memory）
-uv run memhub --config memhub.toml set-password   # 设置 OAuth 登录口令（argon2 哈希写入 .env）
-uv run memhub --config memhub.toml serve          # 监听 127.0.0.1:8787
+uv run memhub --config memhub.toml init           # create the separate memory git repo (./dev-memory)
+uv run memhub --config memhub.toml set-password   # set the OAuth login password (argon2 hash stored in .env)
+uv run memhub --config memhub.toml serve          # listens on 127.0.0.1:8787
 ```
 
-本地接入 Claude Code（token 从 `.env` 里取 `claude-code` 对应的那个）：
+Connect Claude Code locally (use the token mapped to `claude-code` in `.env`):
 
 ```bash
 claude mcp add --transport http --scope user memhub \
   http://127.0.0.1:8787/mcp --header 'Authorization: Bearer <claude-code-token>'
 ```
 
-然后在新会话里说"先调用 memhub 的 get_context"。
+Then start a new session and say "call memhub's get_context first".
 
-## 部署到公网，接入聊天 app
+## Deploy publicly and connect chat apps
 
-ChatGPT、Claude 网页/手机、Gemini、Grok 这类聊天 app 只能连接公网 HTTPS 地址。
+Chat apps such as ChatGPT, Claude (web and mobile), Gemini and Grok can only reach a public HTTPS URL.
 
-1. **部署**：参考 [docs/DEPLOY.md](docs/DEPLOY.md)。参考方案是一台 Ubuntu 服务器 + systemd + Cloudflare Tunnel（不用开公网端口），附带安装、更新脚本和每小时备份 timer。先把 `memhub.prod.toml` 里的 `mem.example.com`、`YOUR_GITHUB_USER` 换成你自己的。
-2. **接入各家 app**：参考 [docs/CLIENTS.md](docs/CLIENTS.md)，包含 Claude、ChatGPT、Gemini、Grok、Claude Code、Gemini CLI 的步骤。聊天 app 授权时会跳到 memhub 的登录页，输入口令并选择"这是哪个 app"，这个选择决定该连接的身份和权限。
-3. **给每家 AI 加一段自定义指令**（模板见 [docs/CLIENTS.md](docs/CLIENTS.md#每家自定义指令模板)）。MCP 的 initialize instructions 不是每家都会遵守，写进自定义指令最可靠。
+1. **Deploy.** See [docs/DEPLOY.md](docs/DEPLOY.md) (Chinese). The reference setup is one Ubuntu server with systemd and a Cloudflare Tunnel (no open inbound ports), with install and update scripts and an hourly backup timer. First replace `mem.example.com` and `YOUR_GITHUB_USER` in `memhub.prod.toml` with your own values.
+2. **Connect each app.** See [docs/CLIENTS.md](docs/CLIENTS.md) (Chinese) for Claude, ChatGPT, Gemini, Grok, Claude Code and Gemini CLI. During OAuth, chat apps land on memhub's login page: enter your password and pick "which app is this" — that choice fixes the connection's identity and permissions.
+3. **Add custom instructions to each assistant** (see the template below). Not every vendor honors MCP initialize instructions, so custom instructions are the reliable path.
 
-> 给 memhub 新增工具后，部分聊天 app 会缓存旧的工具列表，需要在它的连接器设置里刷新或重新连接，并开一个新对话。
+```text
+I use a personal memory server called memhub (MCP tools). Rules:
+1. At the start of every new conversation, call get_context before answering.
+2. For questions about my personal situation (health, projects, family, preferences), search first.
+3. When I state a new long-lived fact (goal, habit, decision, project progress, something about a person), call remember; if an existing fact changed, use update.
+4. Do not store small talk, your guesses, or your advice (unless I explicitly adopt it).
+5. Ask me before writing to profile.
+6. When a topic wraps up, call log with one line: what I asked, where I got stuck or what I decided.
+```
 
-## 配置
+> After a new tool is added to memhub, some chat apps keep using a cached tool list. Refresh or reconnect the connector in that app's settings and start a new conversation.
 
-| 文件 | 内容 |
+## Configuration
+
+| File | Contents |
 | --- | --- |
-| `memhub.toml` / `memhub.prod.toml` | 开发 / 生产参数：目录、端口、时区（决定日志按哪天分文件）、文件上限、上下文 token 预算、限流、允许的 Host、敏感信息正则等 |
-| `.env` | 密钥：CLI 静态 token、OAuth 口令哈希。不进 git，参照 `.env.example` |
-| `clients.yaml` | 每个身份可读写的路径 glob。默认所有身份读写全部 |
+| `memhub.toml` / `memhub.prod.toml` | Dev / production parameters: directories, port, timezone (decides which day a journal entry belongs to), file limit, context token budget, rate limit, allowed hosts, sensitive-data regexes, and more |
+| `.env` | Secrets: CLI static tokens and the OAuth password hash. Never committed; see `.env.example` |
+| `clients.yaml` | Path globs each identity may read and write. By default every identity can read and write everything |
 
-授权管理和批量导入：
+Authorization management and bulk import:
 
 ```bash
 uv run memhub --config memhub.toml clients list
 uv run memhub --config memhub.toml clients revoke '<client_id>'
 uv run memhub --config memhub.toml import --source gemini \
-  --path topics/fitness.md --description '健身与训练' facts.txt
+  --path topics/fitness.md --description 'Fitness and training' facts.txt
 ```
 
-导入时每个非空行是一条事实，逐条走 remember 的权限、敏感拦截和查重；`profile.md` 不可导入。
+Each non-empty line of the import file is one fact, and goes through the same permission, sensitive-data and duplicate checks as `remember`. `profile.md` cannot be imported.
 
-## 安全与边界
+## Security and limits
 
-- 访问日志只记录时间、身份、工具名和路径，不记录事实内容、查询词或 token。
-- 按 token 限流（默认每分钟 60 次），超限返回 429。
-- 敏感信息拦截只覆盖配置里的正则形态，不是万能的；不要把它当成存放机密的地方。
-- 身份是用户登录时选择并绑定的 app 标签，不是对厂商客户端真实性的认证。
-- 单进程写锁 + 原子替换文件；不处理多进程或外部同时编辑的事务冲突。手工改了 Markdown 后重启服务即可重建索引。
-- OAuth 数据库和 `.env` 是凭据状态，不在 Markdown 备份里，需要自己备份服务器状态。
-- 各家接入现状（截至 2026-10）：Claude、ChatGPT 支持选择 DCR；Gemini 个人版官方确认 DCR，但有地区、语言、账号类型限制；Grok 官方未公开完整的 OAuth 注册细节，兼容性需自行验证。详见 [docs/AUTH-RESEARCH.md](docs/AUTH-RESEARCH.md)。
+- The access log records only time, identity, tool name and paths — never fact contents, search queries or tokens.
+- Per-token rate limiting (60 requests per minute by default); excess requests get HTTP 429.
+- Sensitive-data blocking only covers the regex patterns in the config. It is not a vault; don't store secrets here.
+- An identity is the app label the user picks and binds at login. It does not authenticate that the vendor's client is genuine.
+- Single-process write lock plus atomic file replacement; there is no transaction handling for multiple processes or concurrent external edits. After editing Markdown by hand, restart the service to rebuild the index.
+- The OAuth database and `.env` are credential state and are not part of the Markdown backup; back up your server state yourself.
+- Vendor support as of 2026-10: Claude and ChatGPT let you choose DCR; Gemini's consumer app officially supports DCR but has region, language and account-type restrictions; Grok has not published full OAuth registration details, so verify compatibility yourself. See [docs/AUTH-RESEARCH.md](docs/AUTH-RESEARCH.md) (Chinese).
 
-## 开发
+## Development
 
 ```bash
 uv run pytest -q
-# 依赖变更后导出给服务器用的 requirements.txt：
+# After dependency changes, export requirements.txt for the server:
 uv export --no-hashes --no-dev --no-emit-project --output-file requirements.txt
 ```
 
-测试的临时文件和记忆仓库都在 `.test-tmp/`，不会碰真实记忆。技术栈：Python 3.12、官方 [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)（Streamable HTTP，路径 `/mcp`，健康检查 `/healthz`）、SQLite FTS5、jieba。
+Tests keep their temporary files and memory repos in `.test-tmp/` and never touch real memory. Stack: Python 3.12, the official [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) (Streamable HTTP at `/mcp`, health check at `/healthz`), SQLite FTS5, jieba.
 
 ## License
 
